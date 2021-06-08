@@ -14,7 +14,7 @@ defaultEntryPoints = ["http", "https"]
     [entryPoints.api.auth]
       [entryPoints.api.auth.basic]
         users = [
-          "<username>:<password>",
+          "<traefik_admin_username>:<traefik_admin_password>",
         ]
 
 [api]
