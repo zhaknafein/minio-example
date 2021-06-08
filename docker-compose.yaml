@@ -1,0 +1,67 @@
+version: '3.7'
+
+services:
+  minio:
+    restart: always
+    image: minio/minio:latest
+    container_name: "minio"
+    volumes:
+      - /data/minio/config:/root/.minio
+      - /data/minio/data1:/data1
+      - /data/minio/data2:/data2
+      - /data/minio/data3:/data3
+      - /data/minio/data4:/data4
+    networks:
+      - minio
+    ports:
+      - 9000:9000
+    environment:
+      MINIO_ACCESS_KEY: ### minio_access_key ###
+      MINIO_SECRET_KEY: ### minio_secret_key ###
+    command: server /data{1...4}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    labels:
+      - "traefik.frontend.rule=Host:### public_hostname ###"
+      - "traefik.frontend.passHostHeader=true"
+      - "traefik.enable=true"
+      - "traefik.frontend.passTLSCert=false"
+
+  traefik:
+    restart: always
+    image: "traefik:v1.7"
+    container_name: "traefik"
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
+    volumes:
+      - "/etc/traefik/traefik.toml:/etc/traefik/traefik.toml"
+      - "/etc/traefik/acme.json:/etc/traefik/acme.json"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "/var/log/traefik/:/var/log/"
+    networks:
+      - minio
+
+  minio_console:
+    restart: always
+    image: minio/console:latest
+    container_name: "minio_console"
+    networks:
+      - minio
+    ports:
+      - 9090:9090
+    environment:
+      CONSOLE_HMAC_JWT_SECRET: ### jwt_secret ###
+      CONSOLE_PBKDF_PASSPHRASE: ### pbkdf_passphrase ###
+      CONSOLE_PBKDF_SALT: ### pbkdf_salt ###
+      CONSOLE_ACCESS_KEY: ### minio_console_access_key ###
+      CONSOLE_SECRET_KEY: ### minio_console_secret_key ###
+      CONSOLE_MINIO_SERVER: http://minio:9000
+    command: server
+
+networks:
+  minio:
